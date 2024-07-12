@@ -1,12 +1,11 @@
 from datetime import datetime
 from threading import Lock
-import mysql.connector
 import os
 
 from mysql.connector.pooling import PooledMySQLConnection
 
 import data_types as t
-from mysql.connector import MySQLConnection, pooling
+from mysql.connector import pooling
 
 __all__ = [
     "get_connection",
