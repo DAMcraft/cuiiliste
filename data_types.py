@@ -65,3 +65,19 @@ class FullProbeResponse:
     def __init__(self, responses: list[SingleProbeResponse], final_result: FullProbeResponseType):
         self.responses = responses
         self.final_result = final_result
+
+
+class ResolverHealth(Enum):
+    REACHABLE = 1
+    UNREACHABLE = 2
+    ERROR = 3
+
+
+class HealthCheckResponse:
+    def __init__(self, resolver: DNSResolver, health: ResolverHealth, ping: int):
+        self.resolver = resolver
+        self.health = health
+        self.ping = ping
+
+    def __str__(self):
+        return f"{self.resolver} - {self.health.name}"

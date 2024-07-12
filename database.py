@@ -13,6 +13,7 @@ __all__ = [
     "get_blocking_instances",
     "add_blocked_domain",
     "add_blocking_instance",
+    "add_blocking_instances"
 ]
 
 
