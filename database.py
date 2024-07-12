@@ -110,3 +110,16 @@ def add_blocking_instance(domain: str, blocker: t.DNSResolver, blocked_on: datet
         (domain, blocker.name, blocked_on)
     )
     connection.commit()
+
+
+def add_blocking_instances(domain: str, blockers: list[t.DNSResolver], blocked_on: datetime = None):
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.executemany(
+        """
+                INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on) 
+                VALUES (%s, %s, %s)
+                """,
+        [(domain, blocker.name, blocked_on) for blocker in blockers]
+    )
+    connection.commit()
