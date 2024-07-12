@@ -1,4 +1,3 @@
-from datetime import datetime
 from threading import Lock
 import os
 
@@ -88,7 +87,7 @@ def get_blocking_instances() -> list[t.BlockingInstance]:
     return blocking_instances
 
 
-def add_blocked_domain(domain: str, added_by: str | None, first_blocked_on: datetime | None):
+def add_blocked_domain(blocked_domain: t.BlockedDomain):
     with get_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -96,12 +95,12 @@ def add_blocked_domain(domain: str, added_by: str | None, first_blocked_on: date
                     INSERT IGNORE INTO blocked_domains (domain, added_by, first_blocked_on) 
                     VALUES (%s, %s, %s)
                     """,
-            (domain, added_by, first_blocked_on)
+            (blocked_domain.domain, blocked_domain.added_by, blocked_domain.first_blocked_on)
         )
         connection.commit()
 
 
-def add_blocking_instance(domain: str, blocker: t.DNSResolver, blocked_on: datetime = None):
+def add_blocking_instance(blocking_instance: t.BlockingInstance):
     with get_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -109,12 +108,12 @@ def add_blocking_instance(domain: str, blocker: t.DNSResolver, blocked_on: datet
                     INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on) 
                     VALUES (%s, %s, %s)
                     """,
-            (domain, blocker.name, blocked_on)
+            (blocking_instance.domain, blocking_instance.isp, blocking_instance.blocked_on)
         )
         connection.commit()
 
 
-def add_blocking_instances(domain: str, blockers: list[t.DNSResolver], blocked_on: datetime = None):
+def add_blocking_instances(blocking_instances: list[t.BlockingInstance]):
     with get_connection() as connection:
         cursor = connection.cursor()
         cursor.executemany(
@@ -122,6 +121,7 @@ def add_blocking_instances(domain: str, blockers: list[t.DNSResolver], blocked_o
                     INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on) 
                     VALUES (%s, %s, %s)
                     """,
-            [(domain, blocker.name, blocked_on) for blocker in blockers]
+            [(blocking_instance.domain, blocking_instance.isp, blocking_instance.blocked_on) for blocking_instance in
+             blocking_instances]
         )
         connection.commit()

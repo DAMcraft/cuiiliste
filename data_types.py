@@ -44,7 +44,7 @@ class BlockingInstance:
 
 
 class BlockedDomain:
-    def __init__(self, domain: str, added_by: str, first_blocked_on: datetime):
+    def __init__(self, domain: str, added_by: str | None, first_blocked_on: datetime):
         self.domain = domain
         self.added_by = added_by
         self.first_blocked_on = first_blocked_on
