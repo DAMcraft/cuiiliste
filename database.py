@@ -3,8 +3,10 @@ from threading import Lock
 import mysql.connector
 import os
 
+from mysql.connector.pooling import PooledMySQLConnection
+
 import data_types as t
-from mysql.connector import MySQLConnection
+from mysql.connector import MySQLConnection, pooling
 
 __all__ = [
     "get_connection",
@@ -33,20 +35,19 @@ class DatabaseConnection:
         if DatabaseConnection._instance is not None:
             raise Exception("This class is a singleton!")  # Prevent creating a new instance
         else:
-            self._connection = None
-
-    def get_connection(self) -> MySQLConnection:
-        if self._connection is None or not self._connection.is_connected():
-            self._connection = mysql.connector.connect(
-                host=os.getenv("DB_HOST"),
+            self._pool = pooling.MySQLConnectionPool(
+                pool_size=10,
                 user=os.getenv("DB_USER"),
                 password=os.getenv("DB_PASS"),
+                host=os.getenv("DB_HOST"),
                 database=os.getenv("DB_NAME")
             )
-        return self._connection
+
+    def get_connection(self) -> PooledMySQLConnection:
+        return self._pool.get_connection()
 
 
-def get_connection() -> MySQLConnection:
+def get_connection() -> PooledMySQLConnection:
     return DatabaseConnection.get_instance().get_connection()
 
 
@@ -54,10 +55,11 @@ def get_dns_resolvers() -> list[t.DNSResolver]:
     # table: dns_resolvers
     # columns: name, ip, is_blocking, isp
     resolvers = []
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute("SELECT name, ip, is_blocking, isp FROM dns_resolvers")
-    for name, ip, is_blocking, isp in cursor.fetchall():
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT name, ip, is_blocking, isp FROM dns_resolvers")
+        results = cursor.fetchall()
+    for name, ip, is_blocking, isp in results:
         resolvers.append(t.DNSResolver(name, t.Address.parse(ip), bool(is_blocking), isp))
     return resolvers
 
@@ -66,10 +68,11 @@ def get_blocked_domains() -> list[t.BlockedDomain]:
     # table: blocked_domains
     # columns: domain, added_by, first_blocked_on
     blocked_domains = []
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute("SELECT domain, added_by, first_blocked_on FROM blocked_domains")
-    for domain, added_by, first_blocked_on in cursor.fetchall():
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT domain, added_by, first_blocked_on FROM blocked_domains")
+        results = cursor.fetchall()
+    for domain, added_by, first_blocked_on in results:
         blocked_domains.append(t.BlockedDomain(domain, added_by, first_blocked_on))
     return blocked_domains
 
@@ -78,48 +81,48 @@ def get_blocking_instances() -> list[t.BlockingInstance]:
     # table: blocking_instances
     # columns: domain, blocker, blocked_on
     blocking_instances = []
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute("SELECT domain, blocker, blocked_on FROM blocking_instances")
-    for domain, isp, blocked_on in cursor.fetchall():
-        blocking_instances.append(t.BlockingInstance(domain, isp, blocked_on))
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT domain, blocker, blocked_on FROM blocking_instances")
+        for domain, isp, blocked_on in cursor.fetchall():
+            blocking_instances.append(t.BlockingInstance(domain, isp, blocked_on))
     return blocking_instances
 
 
 def add_blocked_domain(domain: str, added_by: str | None, first_blocked_on: datetime | None):
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute(
-        """
-                INSERT IGNORE INTO blocked_domains (domain, added_by, first_blocked_on) 
-                VALUES (%s, %s, %s)
-                """,
-        (domain, added_by, first_blocked_on)
-    )
-    connection.commit()
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+                    INSERT IGNORE INTO blocked_domains (domain, added_by, first_blocked_on) 
+                    VALUES (%s, %s, %s)
+                    """,
+            (domain, added_by, first_blocked_on)
+        )
+        connection.commit()
 
 
 def add_blocking_instance(domain: str, blocker: t.DNSResolver, blocked_on: datetime = None):
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute(
-        """
-                INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on) 
-                VALUES (%s, %s, %s)
-                """,
-        (domain, blocker.name, blocked_on)
-    )
-    connection.commit()
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+                    INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on) 
+                    VALUES (%s, %s, %s)
+                    """,
+            (domain, blocker.name, blocked_on)
+        )
+        connection.commit()
 
 
 def add_blocking_instances(domain: str, blockers: list[t.DNSResolver], blocked_on: datetime = None):
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.executemany(
-        """
-                INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on) 
-                VALUES (%s, %s, %s)
-                """,
-        [(domain, blocker.name, blocked_on) for blocker in blockers]
-    )
-    connection.commit()
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.executemany(
+            """
+                    INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on) 
+                    VALUES (%s, %s, %s)
+                    """,
+            [(domain, blocker.name, blocked_on) for blocker in blockers]
+        )
+        connection.commit()
