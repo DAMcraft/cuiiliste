@@ -5,8 +5,7 @@ import database
 import dns
 
 
-def test_domain(domain: str) -> dict[str, str | list[dict[str, str | int]]]:
-    resolvers = database.get_dns_resolvers()
+def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | list[dict[str, str | int]]]:
     results = asyncio.run(dns.run_full_check(domain, resolvers))
     if results.final_result in (t.FullProbeResponseType.BLOCKED, t.FullProbeResponseType.PARTIALLY_BLOCKED):
         for response in results.responses:

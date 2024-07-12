@@ -89,4 +89,3 @@ async def run_full_check(
         final_result = t.FullProbeResponseType.NOT_BLOCKED
 
     return t.FullProbeResponse(results, final_result)
-
