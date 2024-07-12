@@ -1,0 +1,4 @@
+flask~=2.3.2
+async_dns
+mysql-connector-python
+python-dotenv
