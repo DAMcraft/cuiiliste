@@ -21,9 +21,9 @@ def test_domain():
     return middleware.test_domain(domain, resolvers)
 
 
-@app.route('/status')
-def get_resolver_health():
-    return background_tasks.get_resolver_health()
+@app.route('/resolvers')
+def get_resolvers():
+    return middleware.get_resolvers()
 
 
 if __name__ == '__main__':

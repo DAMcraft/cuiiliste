@@ -12,20 +12,21 @@ __all__ = ["is_cuii_blocked_single", "run_full_check"]
 
 
 async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.SingleProbeResponse:
-    resp: t.SingleProbeResponseType = t.SingleProbeResponseType.ERROR
+    resp: t.SingleProbeResponseType = t.SingleProbeResponseType.ERROR  # assume error by default
     start_time = asyncio.get_event_loop().time()
     try:
         client = DNSClient()
         res: DNSMessage = await client.query(domain, types.A, resolver.address)
 
         if len(res.an) == 0:
+            # Domain does not exist
             resp = t.SingleProbeResponseType.NXDOMAIN
-            return  # noqa
+            return  # noqa, return early and go to finally block
 
         for answer in res.an:
             if answer.qtype == types.CNAME and answer.data.data == "notice.cuii.info":
                 resp = t.SingleProbeResponseType.BLOCKED
-                return  # noqa
+                return  # noqa, return early and go to finally block
 
         resp = t.SingleProbeResponseType.NOT_BLOCKED
 
@@ -40,6 +41,7 @@ async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.Sing
     finally:
         end_time = asyncio.get_event_loop().time()
         duration = int((end_time - start_time) * 1000)
+        # return the actual response here
         return t.SingleProbeResponse(resp, duration, domain, resolver)
 
 
@@ -61,10 +63,14 @@ async def run_full_check(
             for result in non_blocking_results):
         final_result = t.FullProbeResponseType.FAKE_BLOCKED
 
-    # If all blocking resolvers return blocked, the domain is blocked by all ISPs
-    elif all(
-            result.response == t.SingleProbeResponseType.BLOCKED
-            for result in blocking_results):
+    # If at least one blocking resolver returns blocked and all others return blocked/timeouts, the domain is blocked
+    elif (
+            any(
+                result.response == t.SingleProbeResponseType.BLOCKED for result in blocking_results
+            ) and all(
+                result.response in (t.SingleProbeResponseType.BLOCKED, t.SingleProbeResponseType.TIMEOUT)
+                for result in blocking_results
+            )):
         final_result = t.FullProbeResponseType.BLOCKED
 
     # If any blocking resolver returns blocked, the domain is partially blocked

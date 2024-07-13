@@ -7,24 +7,13 @@ import dns
 resolver_healths: list[t.HealthCheckResponse] = []
 
 
-def get_resolver_health() -> dict[str, list[dict[str, str]]]:
-    global resolver_healths
-    return {
-        "resolvers": [
-            {
-                "resolver": health.resolver.name,
-                "health": health.health.name,
-                "ping": health.ping
-            }
-            for health in resolver_healths
-        ]
-    }
+def get_resolver_health() -> list[t.HealthCheckResponse]:
+    return resolver_healths
 
 
 async def resolver_health_updater(resolvers: list[t.DNSResolver]):
     while True:
-        global resolver_healths
-        res = await dns.run_full_check("google.com", resolvers)
+        res = await dns.run_full_check("damcraft.de", resolvers)
         resolver_healths.clear()
         for result in res.responses:
             response = result.response

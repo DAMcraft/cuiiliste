@@ -1,5 +1,7 @@
 import asyncio
 from datetime import datetime
+
+import background_tasks
 import data_types as t
 import database
 import dns
@@ -20,8 +22,25 @@ def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | 
             {
                 "resolver": result.resolver.name,
                 "response": result.response.name,
-                "duration": result.duration
+                "duration": result.duration,
+                "is_blocking": result.resolver.is_blocking,
             }
             for result in results.responses
+        ]
+    }
+
+
+def get_resolvers():
+    resolver_healths = background_tasks.get_resolver_health()
+    return {
+        "resolvers": [
+            {
+                "resolver": resolver.resolver.name,
+                "health": resolver.health.name,
+                "ping": resolver.ping,
+                "isp": resolver.resolver.isp,
+                "is_blocking": resolver.resolver.is_blocking
+            }
+            for resolver in resolver_healths
         ]
     }
