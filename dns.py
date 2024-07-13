@@ -10,6 +10,8 @@ from async_dns.resolver import DNSClient
 
 __all__ = ["is_cuii_blocked_single", "run_full_check"]
 
+import notifications
+
 
 async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.SingleProbeResponse:
     resp: t.SingleProbeResponseType = t.SingleProbeResponseType.ERROR  # assume error by default
@@ -34,6 +36,7 @@ async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.Sing
         resp = t.SingleProbeResponseType.TIMEOUT
 
     except BaseException as e:
+        notifications.send_notif(f"Error with resolver {resolver}: {e}")
         print(f"Error with resolver {resolver}: {e}")
         traceback.print_exc()
         resp = t.SingleProbeResponseType.ERROR

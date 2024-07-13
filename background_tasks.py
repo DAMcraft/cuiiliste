@@ -5,6 +5,7 @@ import threading
 import data_types as t
 import database
 import dns
+import notifications
 
 resolver_healths: list[t.HealthCheckResponse] = []
 
@@ -27,13 +28,12 @@ async def update_resolver_health(resolvers: list[t.DNSResolver]):
 
 
 async def update_dns_blocklist(resolvers: list[t.DNSResolver]):
+    resolvers = [resolver for resolver in resolvers if resolver.is_blocking]  # remove non-blocking resolvers
     # Update the blocklist database
     domains = database.get_blocked_domains()  # forgive me for calling this blocking function from an async context
     blocking_instances = database.get_blocking_instances()  # sowwy
     for domain in domains:
-        print(f"Checking {domain.domain}")
         results = await dns.run_full_check(domain.domain, resolvers)
-        print(f"Results for {domain.domain}: {results.final_result.name}")
         associated_blocking_instances = [
             instance for instance in blocking_instances
             if instance.domain == domain.domain
@@ -50,13 +50,13 @@ async def update_dns_blocklist(resolvers: list[t.DNSResolver]):
             # a domain should be marked as blocked for that ISP if ANY resolver of the ISP return blocked
             if any(result.response == t.SingleProbeResponseType.BLOCKED for result in results) \
                     and not any(instance.isp == isp for instance in associated_blocking_instances):  # not yet blocked
-                print(f"Adding blocking instance for {domain.domain} for ISP {isp}")
+                notifications.send_notif(f"Domain {domain.domain} has been blocked for ISP {isp}")
                 database.add_blocking_instance(t.BlockingInstance(domain.domain, isp, datetime.datetime.now()))
 
             # a domain should be unblocked for that ISP if ALL resolvers of the ISP return not blocked
             elif all(instance.isp == isp for instance in associated_blocking_instances) \
                     and all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results):
-                print(f"Removing blocking instance for {domain.domain} for ISP {isp}")
+                notifications.send_notif(f"Removing blocking instance for {domain.domain} for ISP {isp}")
                 database.remove_blocking_instance(domain.domain, isp)
 
 

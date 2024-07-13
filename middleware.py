@@ -5,6 +5,7 @@ import background_tasks
 import data_types as t
 import database
 import dns
+import notifications
 
 
 def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | list[dict[str, str | int]]]:
@@ -14,7 +15,10 @@ def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | 
                 t.BlockingInstance(domain, result.resolver.isp, datetime.now())
                 for result in results.responses if result.response == t.SingleProbeResponseType.BLOCKED
         ])
-        database.add_blocked_domain(t.BlockedDomain(domain, None, datetime.now()))
+        is_new_block = database.add_blocked_domain(t.BlockedDomain(domain, None, datetime.now()))
+        if is_new_block:
+            notifications.send_notif(f"Domain {domain} has been blocked")
+
     return {
         "domain": domain,
         "final_result": results.final_result.name,

@@ -88,7 +88,8 @@ def get_blocking_instances() -> list[t.BlockingInstance]:
     return blocking_instances
 
 
-def add_blocked_domain(blocked_domain: t.BlockedDomain):
+def add_blocked_domain(blocked_domain: t.BlockedDomain) -> bool:
+    # returns True if the domain was added, False if it already exists
     with get_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -99,6 +100,7 @@ def add_blocked_domain(blocked_domain: t.BlockedDomain):
             (blocked_domain.domain, blocked_domain.added_by, blocked_domain.first_blocked_on)
         )
         connection.commit()
+        return cursor.rowcount > 0  # if the row was added, rowcount will be 1
 
 
 def add_blocking_instance(blocking_instance: t.BlockingInstance):
