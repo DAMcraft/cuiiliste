@@ -42,6 +42,9 @@ class BlockingInstance:
         self.isp = isp
         self.blocked_on = blocked_on
 
+    def __eq__(self, other):
+        return self.domain == other.domain and self.isp == other.isp
+
 
 class BlockedDomain:
     def __init__(self, domain: str, added_by: str | None, first_blocked_on: datetime):

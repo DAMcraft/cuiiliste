@@ -126,3 +126,15 @@ def add_blocking_instances(blocking_instances: list[t.BlockingInstance]):
              blocking_instances]
         )
         connection.commit()
+
+
+def remove_blocking_instance(domain: str, isp: str):
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+                    DELETE FROM blocking_instances WHERE domain = %s AND blocker = %s
+                    """,
+            (domain, isp)
+        )
+        connection.commit()
