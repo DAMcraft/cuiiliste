@@ -46,6 +46,12 @@ async def update_dns_blocklist(resolvers: list[t.DNSResolver]):
                 isp_results[result.resolver.isp] = []
             isp_results[result.resolver.isp].append(result)
 
+        # if all ISPs have not blocked the domain, remove the domain from the blocklist
+        if all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results.responses):
+            notifications.send_notif(f"Removing domain {domain.domain} from blocklist")
+            database.remove_blocked_domain(domain.domain)
+            continue
+
         for isp, results in isp_results.items():
             # a domain should be marked as blocked for that ISP if ANY resolver of the ISP return blocked
             if any(result.response == t.SingleProbeResponseType.BLOCKED for result in results) \

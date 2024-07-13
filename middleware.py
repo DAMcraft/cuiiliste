@@ -48,3 +48,8 @@ def get_resolvers():
             for resolver in resolver_healths
         ]
     }
+
+
+def get_blocked_domains():
+    blocked_domains = database.get_blocked_domains()
+    return [domain.domain for domain in blocked_domains]

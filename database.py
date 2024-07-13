@@ -140,3 +140,22 @@ def remove_blocking_instance(domain: str, isp: str):
             (domain, isp)
         )
         connection.commit()
+
+
+def remove_blocked_domain(domain: str):
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        # delete the domain from the blocked_domains and blocking_instances tables
+        cursor.execute(
+            """
+                    DELETE FROM blocking_instances WHERE domain = %s
+                    """,
+            (domain,)
+        )
+        cursor.execute(
+            """
+                    DELETE FROM blocked_domains WHERE domain = %s
+                    """,
+            (domain,)
+        )
+        connection.commit()

@@ -15,5 +15,4 @@ def send_notif(message: str, should_ping: bool = True):
             "parse": ["everyone"]
         }
     }
-    req = requests.post(webhook_url, json=data)
-    print(req.status_code)
+    requests.post(webhook_url, json=data)
