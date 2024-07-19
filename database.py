@@ -1,3 +1,49 @@
+"""
+Please note that you need to populate the ISP and DNS resolvers tables manually.
+
+The database schema is as follows:
+
+create database cuii;
+use cuii;
+
+create table blocked_domains
+(
+    domain           varchar(255)                          not null
+        primary key,
+    first_blocked_on timestamp default current_timestamp() null,
+    added_by         varchar(255)                          null
+);
+
+create table isp
+(
+    name varchar(255) not null
+        primary key
+);
+
+create table blocking_instances
+(
+    domain     varchar(255)                          not null,
+    blocker    varchar(255)                          not null comment 'the company blocking the domain',
+    blocked_on timestamp default current_timestamp() null,
+    primary key (domain, blocker),
+    constraint blocked_by_fk
+        foreign key (domain) references blocked_domains (domain),
+    constraint blocking_instance_fk
+        foreign key (blocker) references isp (name)
+);
+
+create table dns_resolvers
+(
+    ip          varchar(15)  not null
+        primary key,
+    name        varchar(255) not null,
+    is_blocking tinyint(1)   not null comment 'Weather the DNS resolver is following cuii blocks or not',
+    isp         varchar(255) null,
+    constraint dns_resolvers_isp_name_fk
+        foreign key (isp) references isp (name)
+);
+"""  # noinspection
+
 from threading import Lock
 import os
 
@@ -13,7 +59,9 @@ __all__ = [
     "get_blocking_instances",
     "add_blocked_domain",
     "add_blocking_instance",
-    "add_blocking_instances"
+    "add_blocking_instances",
+    "remove_blocking_instance",
+    "remove_blocked_domain"
 ]
 
 

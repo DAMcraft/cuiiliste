@@ -12,7 +12,7 @@ background_tasks.launch(resolvers)
 
 
 @app.route('/')
-def hello_world():  # put application's code here
+def index():
     return dedent('''
     <h1>Work in progress</h1>
     Diese Seite ist noch nicht fertig, eine UI kommt noch, die API sachen sind schon nutzbar.

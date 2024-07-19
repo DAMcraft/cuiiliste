@@ -6,11 +6,10 @@ import data_types as t
 from async_dns import DNSMessage
 from async_dns.core import types
 from async_dns.resolver import DNSClient
+import notifications
 
 
 __all__ = ["is_cuii_blocked_single", "run_full_check"]
-
-import notifications
 
 
 async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.SingleProbeResponse:

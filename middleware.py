@@ -36,8 +36,7 @@ def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | 
 
 def get_resolvers():
     resolver_healths = background_tasks.get_resolver_health()
-    return {
-        "resolvers": [
+    return [
             {
                 "resolver": resolver.resolver.name,
                 "health": resolver.health.name,
@@ -46,10 +45,16 @@ def get_resolvers():
                 "is_blocking": resolver.resolver.is_blocking
             }
             for resolver in resolver_healths
-        ]
-    }
+    ]
 
 
 def get_blocked_domains():
     blocked_domains = database.get_blocked_domains()
-    return [domain.domain for domain in blocked_domains]
+    return [
+        {
+            "domain": blocked_domain.domain,
+            "added_by": blocked_domain.added_by,
+            "first_blocked_on": blocked_domain.first_blocked_on.date().isoformat()
+        }
+        for blocked_domain in blocked_domains
+    ]
