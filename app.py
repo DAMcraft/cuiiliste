@@ -45,5 +45,21 @@ def get_blocked_domains():
     return middleware.get_blocked_domains()
 
 
+@app.after_request
+def add_cors_headers(response):
+    allowed_origins = [
+        'https://cuiiliste.de',
+        'https://www.cuiiliste.de',
+        'http://localhost:3000'  # fuck it, we're testing in prod :333
+    ]
+    origin = request.headers.get('Origin')
+
+    if origin in allowed_origins:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Methods', 'GET')
+
+    return response
+
+
 if __name__ == '__main__':
     app.run()
