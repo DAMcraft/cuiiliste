@@ -1,4 +1,5 @@
 import asyncio
+import re
 from datetime import datetime
 
 import background_tasks
@@ -9,6 +10,7 @@ import notifications
 
 
 def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | list[dict[str, str | int]]]:
+    domain = re.sub(r"^ww(w)?\d*\.", "", domain)  # remove www and similar prefixes from the domain
     results = asyncio.run(dns.run_full_check(domain, resolvers))
     if results.final_result in (t.FullProbeResponseType.BLOCKED, t.FullProbeResponseType.PARTIALLY_BLOCKED):
         database.add_blocking_instances([

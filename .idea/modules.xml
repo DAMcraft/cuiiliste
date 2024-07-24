@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/cuiiliste.iml" filepath="$PROJECT_DIR$/.idea/cuiiliste.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/cuiiliste_api.iml" filepath="$PROJECT_DIR$/.idea/cuiiliste_api.iml" />
     </modules>
   </component>
 </project>
