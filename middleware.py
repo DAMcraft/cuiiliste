@@ -29,7 +29,7 @@ def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | 
                 "resolver": result.resolver.name,
                 "response": result.response.name,
                 "duration": result.duration,
-                "is_blocking": result.resolver.is_blocking,
+                "obeys_cuii": result.resolver.is_blocking,
             }
             for result in results.responses
         ]
