@@ -87,10 +87,14 @@ async def run_full_check(
             for result in blocking_results):
         final_result = t.FullProbeResponseType.ERROR
 
-    # No resolver found the domain -> The domain does not exist
-    elif all(
-            result.response == t.SingleProbeResponseType.NXDOMAIN
-            for result in results):
+    # One resolver didn't find the domain, all other neither/timeout -> The domain does not exist
+    elif (
+            any(
+                result.response == t.SingleProbeResponseType.NXDOMAIN for result in results
+            ) and all(
+                result.response in (t.SingleProbeResponseType.NXDOMAIN, t.SingleProbeResponseType.TIMEOUT)
+                for result in results
+            )):
         final_result = t.FullProbeResponseType.NXDOMAIN
 
     else:
