@@ -52,12 +52,16 @@ async def update_dns_blocklist(resolvers: list[t.DNSResolver]):
             database.remove_blocked_domain(domain.domain)
             continue
 
+        skip_isps = []  # ISPs that have already been marked as blocked, so we don't mark them again
         for isp, results in isp_results.items():
+            if isp in skip_isps:
+                continue
             # a domain should be marked as blocked for that ISP if ANY resolver of the ISP return blocked
             if any(result.response == t.SingleProbeResponseType.BLOCKED for result in results) \
                     and not any(instance.isp == isp for instance in associated_blocking_instances):  # not yet blocked
                 notifications.send_notif(f"Domain {domain.domain} has been blocked for ISP {isp}")
                 database.add_blocking_instance(t.BlockingInstance(domain.domain, isp, datetime.datetime.now()))
+                skip_isps.append(isp)
 
             # a domain should be unblocked for that ISP if ALL resolvers of the ISP return not blocked
             elif any(instance.isp == isp for instance in associated_blocking_instances) \
