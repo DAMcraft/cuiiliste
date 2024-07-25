@@ -50,7 +50,8 @@ def add_cors_headers(response):
     allowed_origins = [
         'https://cuiiliste.de',
         'https://www.cuiiliste.de',
-        'http://localhost:3000'  # fuck it, we're testing in prod :333
+        'http://localhost:3000',  # fuck it, we're testing in prod :333
+        'https://cuiidev.damcraft.de'
     ]
     origin = request.headers.get('Origin')
 
