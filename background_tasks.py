@@ -60,7 +60,7 @@ async def update_dns_blocklist(resolvers: list[t.DNSResolver]):
                 database.add_blocking_instance(t.BlockingInstance(domain.domain, isp, datetime.datetime.now()))
 
             # a domain should be unblocked for that ISP if ALL resolvers of the ISP return not blocked
-            elif all(instance.isp == isp for instance in associated_blocking_instances) \
+            elif any(instance.isp == isp for instance in associated_blocking_instances) \
                     and all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results):
                 notifications.send_notif(f"Removing blocking instance for {domain.domain} for ISP {isp}")
                 database.remove_blocking_instance(domain.domain, isp)
