@@ -44,7 +44,7 @@ def get_resolvers():
                 "health": resolver.health.name,
                 "ping": resolver.ping,
                 "isp": resolver.resolver.isp,
-                "is_blocking": resolver.resolver.is_blocking
+                "obeys_cuii": resolver.resolver.is_blocking
             }
             for resolver in resolver_healths
     ]
