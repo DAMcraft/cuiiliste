@@ -10,7 +10,7 @@ import notifications
 
 
 def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | list[dict[str, str | int]]]:
-    domain = re.sub(r"^(http(s)?://)?ww(w)?\d*\.", "", domain.strip())  # normalize domain
+    domain = re.sub(r"^(http(s)?://)?ww(w)?\d*\.", "", domain.strip().lower())  # normalize domain
     results = asyncio.run(dns.run_full_check(domain, resolvers))
     if results.final_result in (t.FullProbeResponseType.BLOCKED, t.FullProbeResponseType.PARTIALLY_BLOCKED):
         database.add_blocking_instances([
