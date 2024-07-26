@@ -35,7 +35,7 @@ async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.Sing
         resp = t.SingleProbeResponseType.TIMEOUT
 
     except BaseException as e:
-        notifications.send_notif(f"Error with resolver {resolver}: {e}")
+        notifications.send_notif(f"Ein DNS Resolver hat einen Fehler {resolver}: {e}", should_ping=False)
         print(f"Error with resolver {resolver}: {e}")
         traceback.print_exc()
         resp = t.SingleProbeResponseType.ERROR

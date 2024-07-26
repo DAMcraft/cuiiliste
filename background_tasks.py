@@ -48,7 +48,7 @@ async def update_dns_blocklist(resolvers: list[t.DNSResolver]):
 
         # if all ISPs have not blocked the domain, remove the domain from the blocklist
         if all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results.responses):
-            notifications.send_notif(f"Removing domain {domain.domain} from blocklist")
+            notifications.send_notif(f"{domain.domain} ist von keinem ISP mehr geblockt.")
             database.remove_blocked_domain(domain.domain)
             continue
 
@@ -59,14 +59,14 @@ async def update_dns_blocklist(resolvers: list[t.DNSResolver]):
             # a domain should be marked as blocked for that ISP if ANY resolver of the ISP return blocked
             if any(result.response == t.SingleProbeResponseType.BLOCKED for result in results) \
                     and not any(instance.isp == isp for instance in associated_blocking_instances):  # not yet blocked
-                notifications.send_notif(f"Domain {domain.domain} has been blocked for ISP {isp}")
+                notifications.send_notif(f"{isp} hat {domain.domain} gesperrt.")
                 database.add_blocking_instance(t.BlockingInstance(domain.domain, isp, datetime.datetime.now()))
                 skip_isps.append(isp)
 
             # a domain should be unblocked for that ISP if ALL resolvers of the ISP return not blocked
             elif any(instance.isp == isp for instance in associated_blocking_instances) \
                     and all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results):
-                notifications.send_notif(f"Removing blocking instance for {domain.domain} for ISP {isp}")
+                notifications.send_notif(f"{isp} hat {domain.domain} wieder freigegeben.")
                 database.remove_blocking_instance(domain.domain, isp)
 
 
