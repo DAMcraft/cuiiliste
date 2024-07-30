@@ -35,6 +35,9 @@ def blocking_instance_added(domain: str, isp: str):
                 "color": 0xED4245
             }
         ],
+        "allowed_mentions": {
+            "roles": [os.getenv('CUII_NOTIF_ROLE_ID')]
+        }
     })
 
 
@@ -48,6 +51,9 @@ def domain_unblocked(domain: str):
                 "color": 0x57F287
             }
         ],
+        "allowed_mentions": {
+            "roles": [os.getenv('CUII_NOTIF_ROLE_ID')]
+        }
     })
 
 
@@ -61,6 +67,9 @@ def domain_blocked(domain: str):
                 "color": 0xED4245
             }
         ],
+        "allowed_mentions": {
+            "roles": [os.getenv('CUII_NOTIF_ROLE_ID')]
+        }
     })
 
 
