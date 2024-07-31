@@ -3,3 +3,4 @@ git+https://github.com/DAMcraft/async_dns
 mysql-connector-python
 python-dotenv
 requests
+gunicorn
