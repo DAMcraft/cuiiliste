@@ -11,7 +11,7 @@ def send_webhook(data: dict):
 
 def blocking_instance_removed(domain: str, isp: str):
     send_webhook({
-        "content": f"<@&{os.getenv('CUII_NOTIF_ROLE_ID')}>",
+        # "content": f"<@&{os.getenv('CUII_NOTIF_ROLE_ID')}>",
         "embeds": [
             {
                 "title": f"Domain von {isp} entsperrt",
@@ -27,7 +27,7 @@ def blocking_instance_removed(domain: str, isp: str):
 
 def blocking_instance_added(domain: str, isp: str):
     send_webhook({
-        "content": f"<@&{os.getenv('CUII_NOTIF_ROLE_ID')}>",
+        # "content": f"<@&{os.getenv('CUII_NOTIF_ROLE_ID')}>",
         "embeds": [
             {
                 "title": "Domain gesperrt",
