@@ -14,11 +14,6 @@ background_tasks.launch(resolvers)
 @app.route('/')
 def index():
     return dedent('''
-    <h1>Work in progress</h1>
-    Diese Seite ist noch nicht fertig, eine UI kommt noch, die API sachen sind schon nutzbar.
-    Aber auch die können sich noch ändern.
-    <br>
-    <br>
     <h2>API Endpoints</h2>
     <h3>GET /test_domain?domain=example.com</h3>
     <p>Testet ob eine Domain geblockt ist</p>
