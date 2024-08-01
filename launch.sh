@@ -1,2 +1,1 @@
-# todo: replace with gunicorn
-python3 -m flask run -p 5099
+python3 -m gunicorn -w 4 -b 127.0.0.1:5099 app:app
