@@ -60,6 +60,11 @@ class SingleProbeResponse:
         self.domain = domain
         self.resolver = resolver
 
+    @property
+    def sld_tld_key(self) -> str:
+        """Return the second-level domain and top-level domain parts only (e.g. damcraft.de, without www.)"""
+        return ".".join(self.domain.split(".")[-2:])
+
     def __str__(self):
         return f"{self.domain} - {self.resolver}: {self.response.name} ({self.duration}ms)"
 
@@ -69,6 +74,16 @@ class FullProbeResponse:
         self.responses = responses
         self.final_result = final_result
 
+    @property
+    def sld_tld_sorted(self) -> dict[str, list[SingleProbeResponse]]:
+        """Return the responses grouped by second-level domain and top-level domain"""
+        grouped = {}
+        for response in self.responses:
+            key = response.sld_tld_key
+            if key not in grouped:
+                grouped[key] = []
+            grouped[key].append(response)
+        return grouped
 
 class ResolverHealth(Enum):
     REACHABLE = 1
