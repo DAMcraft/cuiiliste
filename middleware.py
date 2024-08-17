@@ -17,7 +17,7 @@ def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | 
                 t.BlockingInstance(domain, result.resolver.isp, datetime.now())
                 for result in results.responses if result.response == t.SingleProbeResponseType.BLOCKED
         ])
-        is_new_block = database.add_blocked_domain(t.BlockedDomain(domain, None, datetime.now()))
+        is_new_block = database.add_blocked_domain(t.BlockedDomain(domain, None, datetime.now(), None))
         if is_new_block:
             notifications.domain_unblocked(domain)
 
@@ -56,7 +56,8 @@ def get_blocked_domains():
         {
             "domain": blocked_domain.domain,
             "added_by": blocked_domain.added_by,
-            "first_blocked_on": blocked_domain.first_blocked_on.date().isoformat()
+            "first_blocked_on": blocked_domain.first_blocked_on.date().isoformat(),
+            "site": blocked_domain.site.name if blocked_domain.site else None,
         }
         for blocked_domain in blocked_domains
     ]

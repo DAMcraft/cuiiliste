@@ -46,11 +46,18 @@ class BlockingInstance:
         return self.domain == other.domain and self.isp == other.isp
 
 
+class BlockedSite:
+    def __init__(self, name: str, recommendation_url: str):
+        self.name = name
+        self.recommendation_url = recommendation_url
+
+
 class BlockedDomain:
-    def __init__(self, domain: str, added_by: str | None, first_blocked_on: datetime):
+    def __init__(self, domain: str, added_by: str | None, first_blocked_on: datetime, site: BlockedSite | None):
         self.domain = domain
         self.added_by = added_by
         self.first_blocked_on = first_blocked_on
+        self.site = site
 
 
 class SingleProbeResponse:

@@ -6,12 +6,22 @@ The database schema is as follows:
 create database cuii;
 use cuii;
 
+create table blocked_sites
+(
+    name               varchar(30) not null
+        primary key,
+    recommendation_url text        not null
+);
+
 create table blocked_domains
 (
     domain           varchar(255)                          not null
         primary key,
     first_blocked_on timestamp default current_timestamp() null,
-    added_by         varchar(255)                          null
+    added_by         varchar(255)                          null,
+    site_reference   varchar(30)                           null,
+    constraint blocked_domains_blocked_sites_name_fk
+        foreign key (site_reference) references blocked_sites (name)
 );
 
 create table isp
@@ -113,14 +123,23 @@ def get_dns_resolvers() -> list[t.DNSResolver]:
 
 def get_blocked_domains() -> list[t.BlockedDomain]:
     # table: blocked_domains
-    # columns: domain, added_by, first_blocked_on
+    # columns: domain, added_by, first_blocked_on, site_reference
+    # table: blocked_sites
+    # columns: name, recommendation_url
+    # blocked_domains.site_reference -> blocked_sites.name
     blocked_domains = []
     with get_connection() as connection:
         cursor = connection.cursor()
-        cursor.execute("SELECT domain, added_by, first_blocked_on FROM blocked_domains")
+        cursor.execute(
+            "SELECT dom.domain, dom.added_by, dom.first_blocked_on, dom.site_reference, site.recommendation_url "
+            "FROM blocked_domains dom LEFT JOIN blocked_sites site ON dom.site_reference = site.name"
+        )
         results = cursor.fetchall()
-    for domain, added_by, first_blocked_on in results:
-        blocked_domains.append(t.BlockedDomain(domain, added_by, first_blocked_on))
+    for domain, added_by, first_blocked_on, site_reference, recommendation_url in results:
+        site = None
+        if site_reference:
+            site = t.BlockedSite(site_reference, recommendation_url)
+        blocked_domains.append(t.BlockedDomain(domain, added_by, first_blocked_on, site))
     return blocked_domains
 
 
@@ -140,12 +159,21 @@ def add_blocked_domain(blocked_domain: t.BlockedDomain) -> bool:
     # returns True if the domain was added, False if it already exists
     with get_connection() as connection:
         cursor = connection.cursor()
-        cursor.execute(
-            """
-                    INSERT IGNORE INTO blocked_domains (domain, added_by, first_blocked_on) 
-                    VALUES (%s, %s, %s)
+        if blocked_domain.site:
+            cursor.execute(
+                """
+                    INSERT IGNORE INTO blocked_sites (name, recommendation_url)
+                    VALUES (%s, %s)
                     """,
-            (blocked_domain.domain, blocked_domain.added_by, blocked_domain.first_blocked_on)
+                (blocked_domain.site.name, blocked_domain.site.recommendation_url)
+            )
+
+        cursor.execute(
+            """            
+                    INSERT IGNORE INTO blocked_domains (domain, added_by, first_blocked_on, site_reference)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+            (blocked_domain.domain, blocked_domain.added_by, blocked_domain.first_blocked_on, blocked_domain.site.name)
         )
         connection.commit()
         return cursor.rowcount > 0  # if the row was added, rowcount will be 1
