@@ -181,7 +181,7 @@ def add_blocked_domain(blocked_domain: t.BlockedDomain) -> bool:
                     INSERT IGNORE INTO blocked_domains (domain, added_by, first_blocked_on, site_reference)
                     VALUES (%s, %s, %s, %s)
                     """,
-            (blocked_domain.domain, blocked_domain.added_by, blocked_domain.first_blocked_on, blocked_domain.site.name)
+            (blocked_domain.domain, blocked_domain.added_by, blocked_domain.first_blocked_on, blocked_domain.site.name if blocked_domain.site else None)
         )
         connection.commit()
         return cursor.rowcount > 0  # if the row was added, rowcount will be 1
