@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum
 
 from async_dns import Address
@@ -47,9 +47,10 @@ class BlockingInstance:
 
 
 class BlockedSite:
-    def __init__(self, name: str, recommendation_url: str):
+    def __init__(self, name: str, recommendation_url: str, sitzungsdatum: date):
         self.name = name
         self.recommendation_url = recommendation_url
+        self.sitzungsdatum = sitzungsdatum
 
 
 class BlockedDomain:

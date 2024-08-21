@@ -131,14 +131,22 @@ def get_blocked_domains() -> list[t.BlockedDomain]:
     with get_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
-            "SELECT dom.domain, dom.added_by, dom.first_blocked_on, dom.site_reference, site.recommendation_url "
-            "FROM blocked_domains dom LEFT JOIN blocked_sites site ON dom.site_reference = site.name"
-        )
-        results = cursor.fetchall()
-    for domain, added_by, first_blocked_on, site_reference, recommendation_url in results:
+            """
+            SELECT 
+                dom.domain, 
+                dom.added_by, 
+                dom.first_blocked_on, 
+                dom.site_reference, 
+                site.recommendation_url, 
+                site.sitzungsdatum
+            FROM blocked_domains dom 
+            LEFT JOIN blocked_sites site ON dom.site_reference = site.name
+        """)
+        results: list[tuple[str, str, t.datetime, str, str, t.date]] = cursor.fetchall()
+    for domain, added_by, first_blocked_on, site_reference, recommendation_url, sitzungsdatum in results:
         site = None
         if site_reference:
-            site = t.BlockedSite(site_reference, recommendation_url)
+            site = t.BlockedSite(site_reference, recommendation_url, sitzungsdatum)
         blocked_domains.append(t.BlockedDomain(domain, added_by, first_blocked_on, site))
     return blocked_domains
 
@@ -162,10 +170,10 @@ def add_blocked_domain(blocked_domain: t.BlockedDomain) -> bool:
         if blocked_domain.site:
             cursor.execute(
                 """
-                    INSERT IGNORE INTO blocked_sites (name, recommendation_url)
-                    VALUES (%s, %s)
+                    INSERT IGNORE INTO blocked_sites (name, recommendation_url, sitzungsdatum)
+                    VALUES (%s, %s, %s)
                     """,
-                (blocked_domain.site.name, blocked_domain.site.recommendation_url)
+                (blocked_domain.site.name, blocked_domain.site.recommendation_url, blocked_domain.site.sitzungsdatum)
             )
 
         cursor.execute(
