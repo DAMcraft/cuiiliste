@@ -19,7 +19,7 @@ def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | 
         ])
         is_new_block = database.add_blocked_domain(t.BlockedDomain(domain, None, datetime.now(), None))
         if is_new_block:
-            notifications.domain_unblocked(domain)
+            notifications.domain_blocked(domain)
 
     return {
         "domain": domain,
