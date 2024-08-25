@@ -55,7 +55,7 @@ def get_blocked_domains():
     return [
         {
             "domain": blocked_domain.domain,
-            "added_by": blocked_domain.added_by,
+            # "added_by": blocked_domain.added_by, - removed for now
             "first_blocked_on": blocked_domain.first_blocked_on.date().isoformat(),
             "site": blocked_domain.site.name if blocked_domain.site else None,
         }
