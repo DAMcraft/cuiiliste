@@ -120,7 +120,7 @@ def get_dns_resolvers() -> list[t.DNSResolver]:
         resolvers.append(
             t.DNSResolver(
                 name,
-                t.Address.parse(ip, default_protocol=protocol),
+                t.Address.parse(ip, default_protocol=protocol, allow_domain=True),
                 bool(is_blocking),
                 isp
             )
