@@ -30,6 +30,7 @@ def test_domain(domain: str, resolvers: list[t.DNSResolver]) -> dict[str, str | 
                 "response": result.response.name,
                 "duration": result.duration,
                 "obeys_cuii": result.resolver.is_blocking,
+                "protocol": result.resolver.address.protocol
             }
             for result in results.responses
         ]
@@ -41,9 +42,10 @@ def get_resolvers():
     return [
             {
                 "resolver": resolver.resolver.name,
+                "isp": resolver.resolver.isp,
+                "protocol": resolver.resolver.address.protocol,
                 "health": resolver.health.name,
                 "ping": resolver.ping,
-                "isp": resolver.resolver.isp,
                 "obeys_cuii": resolver.resolver.is_blocking
             }
             for resolver in resolver_healths

@@ -114,10 +114,17 @@ def get_dns_resolvers() -> list[t.DNSResolver]:
     resolvers = []
     with get_connection() as connection:
         cursor = connection.cursor()
-        cursor.execute("SELECT name, ip, is_blocking, isp FROM dns_resolvers")
+        cursor.execute("SELECT name, ip, is_blocking, isp, protocol FROM dns_resolvers")
         results = cursor.fetchall()
-    for name, ip, is_blocking, isp in results:
-        resolvers.append(t.DNSResolver(name, t.Address.parse(ip), bool(is_blocking), isp))
+    for name, ip, is_blocking, isp, protocol in results:
+        resolvers.append(
+            t.DNSResolver(
+                name,
+                t.Address.parse(ip, default_protocol=protocol),
+                bool(is_blocking),
+                isp
+            )
+        )
     return resolvers
 
 
