@@ -114,15 +114,23 @@ def get_dns_resolvers() -> list[t.DNSResolver]:
     resolvers = []
     with get_connection() as connection:
         cursor = connection.cursor()
-        cursor.execute("SELECT name, ip, is_blocking, isp, protocol FROM dns_resolvers")
+        cursor.execute("SELECT name, ip, is_blocking, isp, protocol, blocking_type FROM dns_resolvers")
         results = cursor.fetchall()
     for name, ip, is_blocking, isp, protocol in results:
+        blocking_type = None
+        if is_blocking:
+            if blocking_type == "CNAME":
+                blocking_type = t.BlockingType.CNAME
+            else:
+                blocking_type = t.BlockingType.NXDOMAIN
+
         resolvers.append(
             t.DNSResolver(
                 name,
                 t.Address.parse(ip, default_protocol=protocol, allow_domain=True),
                 bool(is_blocking),
-                isp
+                isp,
+                blocking_type
             )
         )
     return resolvers
@@ -188,7 +196,8 @@ def add_blocked_domain(blocked_domain: t.BlockedDomain) -> bool:
                     INSERT IGNORE INTO blocked_domains (domain, added_by, first_blocked_on, site_reference)
                     VALUES (%s, %s, %s, %s)
                     """,
-            (blocked_domain.domain, blocked_domain.added_by, blocked_domain.first_blocked_on, blocked_domain.site.name if blocked_domain.site else None)
+            (blocked_domain.domain, blocked_domain.added_by, blocked_domain.first_blocked_on,
+             blocked_domain.site.name if blocked_domain.site else None)
         )
         connection.commit()
         return cursor.rowcount > 0  # if the row was added, rowcount will be 1

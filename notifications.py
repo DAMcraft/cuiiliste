@@ -74,6 +74,7 @@ def domain_blocked(domain: str):
 
 
 def error(message: str):
+    return  # disable
     send_webhook({
         "content": f"",
         "embeds": [

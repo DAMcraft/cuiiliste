@@ -19,14 +19,21 @@ class FullProbeResponseType(Enum):
     FAKE_BLOCKED = 4
     ERROR = 5
     NXDOMAIN = 6
+    POTENTIALLY_BLOCKED = 7
+
+
+class BlockingType(Enum):
+    CNAME = 1
+    NXDOMAIN = 2
 
 
 class DNSResolver:
-    def __init__(self, name: str, address: Address, is_blocking: bool, isp: str):
+    def __init__(self, name: str, address: Address, is_blocking: bool, isp: str, blocking_type: BlockingType | None):
         self.name = name
         self.address = address
         self.is_blocking = is_blocking
         self.isp = isp
+        self.blocking_type = blocking_type
 
     def __str__(self):
         return (f"{self.name} ({self.address}) - {'blocking' if self.is_blocking else 'non-blocking'}"

@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import threading
+from collections import defaultdict
 
 import data_types as t
 import database
@@ -28,46 +29,62 @@ async def update_resolver_health(resolvers: list[t.DNSResolver]):
 
 
 async def update_dns_blocklist(resolvers: list[t.DNSResolver]):
-    resolvers = [resolver for resolver in resolvers if resolver.is_blocking]  # remove non-blocking resolvers
     # Update the blocklist database
     domains = database.get_blocked_domains()  # forgive me for calling this blocking function from an async context
     blocking_instances = database.get_blocking_instances()  # sowwy
     for domain in domains:
         results = await dns.run_full_check(domain.domain, resolvers)
+        blocking_results = [result for result in results.responses if result.resolver.is_blocking]
+
         associated_blocking_instances = [
             instance for instance in blocking_instances
             if instance.domain == domain.domain
         ]  # get all blocking instances associated with the domain
 
         # group the results by ISP
-        isp_results = {}
-        for result in results.responses:
-            if result.resolver.isp not in isp_results:
-                isp_results[result.resolver.isp] = []
+        isp_results = defaultdict(list)
+        for result in blocking_results:
             isp_results[result.resolver.isp].append(result)
 
-        # if all ISPs have not blocked the domain, remove the domain from the blocklist
-        if all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results.responses):
-            notifications.domain_unblocked(domain.domain)
+        if results.final_result == t.FullProbeResponseType.NXDOMAIN:
+            # If the domain is gone, we can't do any further checks
             database.remove_blocked_domain(domain.domain)
             continue
 
         skip_isps = []  # ISPs that have already been marked as blocked, so we don't mark them again
-        for isp, results in isp_results.items():
+        for isp, results_ in isp_results.items():
             if isp in skip_isps:
                 continue
             # a domain should be marked as blocked for that ISP if ANY resolver of the ISP return blocked
-            if any(result.response == t.SingleProbeResponseType.BLOCKED for result in results) \
-                    and not any(instance.isp == isp for instance in associated_blocking_instances):  # not yet blocked
+            if (
+                    # If any result is blocking, or the general result is blocking, it must be blocked
+                    any(result.response == t.SingleProbeResponseType.BLOCKED for result in results_)
+                    or results.final_result == t.FullProbeResponseType.BLOCKED
+            ) and (
+                    # Ensure that the ISP is not already marked as blocked
+                    not any(instance.isp == isp for instance in associated_blocking_instances)
+            ):
                 notifications.blocking_instance_added(domain.domain, isp)
                 database.add_blocking_instance(t.BlockingInstance(domain.domain, isp, datetime.datetime.now()))
                 skip_isps.append(isp)
+                continue
 
             # a domain should be unblocked for that ISP if ALL resolvers of the ISP return not blocked
-            elif any(instance.isp == isp for instance in associated_blocking_instances) \
-                    and all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results):
+            if (
+                    # Check if we track the ISP as blocking the domain
+                    any(instance.isp == isp for instance in associated_blocking_instances)
+            ) and (
+                    # Check if all resolvers of the ISP return not blocked
+                    all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results_)
+            ):
                 notifications.blocking_instance_removed(domain.domain, isp)
                 database.remove_blocking_instance(domain.domain, isp)
+
+        # if all ISPs have not blocked the domain, remove the domain from the blocklist
+        if results.final_result in (t.FullProbeResponseType.NOT_BLOCKED, t.FullProbeResponseType.NXDOMAIN):
+            notifications.domain_unblocked(domain.domain)
+            database.remove_blocked_domain(domain.domain)
+            continue
 
 
 async def background_loop(resolvers: list[t.DNSResolver]):
