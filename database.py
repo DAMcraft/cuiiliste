@@ -116,10 +116,10 @@ def get_dns_resolvers() -> list[t.DNSResolver]:
         cursor = connection.cursor()
         cursor.execute("SELECT name, ip, is_blocking, isp, protocol, blocking_type FROM dns_resolvers")
         results = cursor.fetchall()
-    for name, ip, is_blocking, isp, protocol in results:
+    for name, ip, is_blocking, isp, protocol, blocking_type_str in results:
         blocking_type = None
         if is_blocking:
-            if blocking_type == "CNAME":
+            if blocking_type_str == "CNAME":
                 blocking_type = t.BlockingType.CNAME
             else:
                 blocking_type = t.BlockingType.NXDOMAIN
