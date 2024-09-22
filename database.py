@@ -6,52 +6,49 @@ The database schema is as follows:
 create database cuii;
 use cuii;
 
-create table blocked_sites
-(
-    name               varchar(30) not null
-        primary key,
-    recommendation_url text        not null
-);
+CREATE TABLE `dns_resolvers` (
+  `ip` varchar(30) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `is_blocking` tinyint(1) NOT NULL COMMENT 'Weather the DNS resolver is following cuii blocks or not',
+  `isp` varchar(255) DEFAULT NULL,
+  `protocol` varchar(5) DEFAULT 'udp',
+  `blocking_type` enum('CNAME','NXDOMAIN') DEFAULT NULL,
+  PRIMARY KEY (`ip`),
+  KEY `dns_resolvers_isp_name_fk` (`isp`),
+  CONSTRAINT `dns_resolvers_isp_name_fk` FOREIGN KEY (`isp`) REFERENCES `isp` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 
-create table blocked_domains
-(
-    domain           varchar(255)                          not null
-        primary key,
-    first_blocked_on timestamp default current_timestamp() null,
-    added_by         varchar(255)                          null,
-    site_reference   varchar(30)                           null,
-    constraint blocked_domains_blocked_sites_name_fk
-        foreign key (site_reference) references blocked_sites (name)
-);
+CREATE TABLE `blocking_instances` (
+  `domain` varchar(255) NOT NULL,
+  `blocker` varchar(255) NOT NULL COMMENT 'the company blocking the domain',
+  `blocked_on` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`domain`,`blocker`),
+  KEY `blocking_instance_fk` (`blocker`),
+  CONSTRAINT `blocked_by_fk` FOREIGN KEY (`domain`) REFERENCES `blocked_domains` (`domain`),
+  CONSTRAINT `blocking_instance_fk` FOREIGN KEY (`blocker`) REFERENCES `isp` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 
-create table isp
-(
-    name varchar(255) not null
-        primary key
-);
+CREATE TABLE `blocked_domains` (
+  `domain` varchar(255) NOT NULL,
+  `first_blocked_on` timestamp NULL DEFAULT current_timestamp(),
+  `added_by` varchar(255) DEFAULT NULL,
+  `site_reference` varchar(30) DEFAULT NULL,
+  PRIMARY KEY (`domain`),
+  KEY `blocked_domains_blocked_sites_name_fk` (`site_reference`),
+  CONSTRAINT `blocked_domains_blocked_sites_name_fk` FOREIGN KEY (`site_reference`) REFERENCES `blocked_sites` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 
-create table blocking_instances
-(
-    domain     varchar(255)                          not null,
-    blocker    varchar(255)                          not null comment 'the company blocking the domain',
-    blocked_on timestamp default current_timestamp() null,
-    primary key (domain, blocker),
-    constraint blocked_by_fk
-        foreign key (domain) references blocked_domains (domain),
-    constraint blocking_instance_fk
-        foreign key (blocker) references isp (name)
-);
+CREATE TABLE `isp` (
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 
-create table dns_resolvers
-(
-    ip          varchar(15)  not null
-        primary key,
-    name        varchar(255) not null,
-    is_blocking tinyint(1)   not null comment 'Weather the DNS resolver is following cuii blocks or not',
-    isp         varchar(255) null,
-    constraint dns_resolvers_isp_name_fk
-        foreign key (isp) references isp (name)
-);
+CREATE TABLE `blocked_sites` (
+  `name` varchar(30) NOT NULL,
+  `recommendation_url` text NOT NULL,
+  `sitzungsdatum` date NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 """  # noinspection
 
 from threading import Lock
