@@ -36,6 +36,13 @@ async def update_dns_blocklist(resolvers: list[t.DNSResolver]):
         results = await dns.run_full_check(domain.domain, resolvers)
         blocking_results = [result for result in results.responses if result.resolver.is_blocking]
 
+        if all(
+                result.response == t.SingleProbeResponseType.TIMEOUT for result in blocking_results
+                if result.resolver.blocking_type == t.BlockingType.CNAME
+        ):
+            # If all blocking resolvers timeout, something went wrong, so we should skip this domain
+            continue
+
         associated_blocking_instances = [
             instance for instance in blocking_instances
             if instance.domain == domain.domain
