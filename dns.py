@@ -2,10 +2,11 @@ import asyncio
 import traceback
 from asyncio import CancelledError
 
+import async_dns.request
+
 import data_types as t
-from async_dns import DNSMessage
+from async_dns import DNSMessage, REQUEST, Record
 from async_dns.core import types
-from async_dns.resolver import DNSClient
 import notifications
 
 __all__ = ["is_cuii_blocked_single", "run_full_check"]
@@ -15,8 +16,9 @@ async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.Sing
     resp: t.SingleProbeResponseType = t.SingleProbeResponseType.ERROR  # assume error by default
     start_time = asyncio.get_event_loop().time()
     try:
-        client = DNSClient()
-        res: DNSMessage = await client.query(domain, types.A, resolver.address)
+        req = DNSMessage(qr=REQUEST)
+        req.qd = [Record(REQUEST, domain, types.A)]
+        res: DNSMessage = await async_dns.request.udp.request(req, resolver.address)
 
         if len(res.an) == 0:
             # Domain does not exist
