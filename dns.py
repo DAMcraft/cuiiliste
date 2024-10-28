@@ -15,10 +15,12 @@ __all__ = ["is_cuii_blocked_single", "run_full_check"]
 async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.SingleProbeResponse:
     resp: t.SingleProbeResponseType = t.SingleProbeResponseType.ERROR  # assume error by default
     start_time = asyncio.get_event_loop().time()
+    dispatcher = async_dns.request.udp.Dispatcher(resolver.address.ip_type)
     try:
         req = DNSMessage(qr=REQUEST)
         req.qd = [Record(REQUEST, domain, types.A)]
-        res: DNSMessage = await async_dns.request.udp.request(req, resolver.address)
+        data = await dispatcher.send(req, resolver.address, 3.0)
+        res = DNSMessage.parse(data)
 
         if len(res.an) == 0:
             # Domain does not exist
@@ -42,6 +44,10 @@ async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.Sing
         resp = t.SingleProbeResponseType.ERROR
 
     finally:
+        try:
+            dispatcher.destroy()
+        except Exception as e:
+            print(f"Error destroying dispatcher: {e}")
         end_time = asyncio.get_event_loop().time()
         duration = int((end_time - start_time) * 1000)
         # return the actual response here
