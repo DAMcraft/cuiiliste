@@ -14,8 +14,8 @@ def blocking_instance_removed(domain: str, isp: str):
         # "content": f"<@&{os.getenv('CUII_NOTIF_ROLE_ID')}>",
         "embeds": [
             {
-                "title": f"Domain von {isp} entsperrt",
-                "description": f"Die Domain {domain} wurde von {isp} entsperrt.",
+                "title": f"Domain unblocked by {isp}",
+                "description": f'The domain "`{domain}`" has been  unblocked by {isp}.',
                 "color": 0x57F287
             }
         ],
@@ -30,8 +30,8 @@ def blocking_instance_added(domain: str, isp: str):
         # "content": f"<@&{os.getenv('CUII_NOTIF_ROLE_ID')}>",
         "embeds": [
             {
-                "title": "Domain gesperrt",
-                "description": f"Die Domain {domain} wurde von {isp} gesperrt.",
+                "title": "Domain blocked",
+                "description": f'The domain "`{domain}`" has been blocked by {isp}.',
                 "color": 0xED4245
             }
         ],
@@ -46,8 +46,8 @@ def domain_unblocked(domain: str):
         "content": f"<@&{os.getenv('CUII_NOTIF_ROLE_ID')}>",
         "embeds": [
             {
-                "title": "Domain entsperrt",
-                "description": f"Die Domain {domain} wurde komplett entsperrt.",
+                "title": "Domain unblocked",
+                "description": f'The domain "`{domain}`" has been fully unblocked.',
                 "color": 0x57F287
             }
         ],
@@ -62,8 +62,8 @@ def domain_blocked(domain: str):
         "content": f"<@&{os.getenv('CUII_NOTIF_ROLE_ID')}>",
         "embeds": [
             {
-                "title": "Domain gesperrt",
-                "description": f"Die Domain {domain} wurde gesperrt.",
+                "title": "Domain blocked",
+                "description": f'The domain "`{domain}`" has been blocked.',
                 "color": 0xED4245
             }
         ],
