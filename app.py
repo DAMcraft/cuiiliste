@@ -7,6 +7,7 @@ from textwrap import dedent
 
 load_dotenv()
 resolvers = database.get_dns_resolvers()
+domain_ignorelist = database.get_ignorelist()
 app = Flask(__name__)
 background_tasks.launch(resolvers)
 
@@ -27,7 +28,14 @@ def index():
 @app.route('/test_domain')
 def test_domain():
     domain = request.args.get('domain')
-    return middleware.test_domain(domain, resolvers)
+    return middleware.test_domain(domain, resolvers, domain_ignorelist)
+
+
+@app.route('/add_domain')
+def add_domain():
+    domain = request.args.get('domain')
+    key = request.args.get('key')
+    return middleware.add_domain(domain, key)
 
 
 @app.route('/resolvers')

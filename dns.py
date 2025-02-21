@@ -13,45 +13,41 @@ __all__ = ["is_cuii_blocked_single", "run_full_check"]
 
 
 async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.SingleProbeResponse:
-    resp: t.SingleProbeResponseType = t.SingleProbeResponseType.ERROR  # assume error by default
+    resp: t.SingleProbeResponseType = t.SingleProbeResponseType.NOT_BLOCKED  # default to not blocked
     start_time = asyncio.get_event_loop().time()
     dispatcher = async_dns.request.udp.Dispatcher(resolver.address.ip_type)
     try:
         req = DNSMessage(qr=REQUEST)
-        req.qd = [Record(REQUEST, domain, types.A)]
+        req.qd = [Record(REQUEST, domain, types.SOA)]
         data = await dispatcher.send(req, resolver.address, 3.0)
         res = DNSMessage.parse(data)
 
-        if len(res.an) == 0:
-            # Domain does not exist
-            resp = t.SingleProbeResponseType.NXDOMAIN
-            return  # noqa, return early and go to finally block
+        end_time = asyncio.get_event_loop().time()
+        duration = int((end_time - start_time) * 1000)
 
-        for answer in res.an:
-            if answer.qtype == types.CNAME and answer.data.data == "notice.cuii.info":
+        if resolver.blocking_type == t.BlockingType.SERVFAIL:
+            if res.r == 2:
+                # SERVFAIL
                 resp = t.SingleProbeResponseType.BLOCKED
-                return  # noqa, return early and go to finally block
 
-        resp = t.SingleProbeResponseType.NOT_BLOCKED
+        elif resolver.blocking_type == t.BlockingType.NO_SOA:
+            if res.r == 3 and len(res.ns) == 0:
+                resp = t.SingleProbeResponseType.BLOCKED
+
+        return t.SingleProbeResponse(resp, duration, domain, resolver)
 
     except (CancelledError, asyncio.TimeoutError):
         resp = t.SingleProbeResponseType.TIMEOUT
-
+        return t.SingleProbeResponse(resp, 3000, domain, resolver)
     except BaseException as e:
         notifications.error(f"Ein DNS Resolver hat einen Fehler {resolver}: {e}")
         print(f"Error with resolver {resolver}: {e}")
         traceback.print_exc()
-        resp = t.SingleProbeResponseType.ERROR
-
     finally:
         try:
             dispatcher.destroy()
         except Exception as e:
             print(f"Error destroying dispatcher: {e}")
-        end_time = asyncio.get_event_loop().time()
-        duration = int((end_time - start_time) * 1000)
-        # return the actual response here
-        return t.SingleProbeResponse(resp, duration, domain, resolver)
 
 
 async def run_full_check(domain: str, dns_resolvers: list[t.DNSResolver]) -> t.FullProbeResponse:
@@ -65,76 +61,49 @@ async def run_full_check(domain: str, dns_resolvers: list[t.DNSResolver]) -> t.F
 
 def analyze_results(results: list[t.SingleProbeResponse]):
     # Group the results by blocking and non-blocking resolvers
-    blocking_results, non_blocking_results = [], []
-    for result in results:
-        if result.resolver.is_blocking:
-            # The resolver is a blocking resolver, add it to the blocking results
-            blocking_results.append(result)
-        else:
-            # Not a blocking resolver
-            non_blocking_results.append(result)
+    # blocking_results, non_blocking_results = [], []
+    # for result in results:
+    #     if result.resolver.is_blocking:
+    #         # The resolver is a blocking resolver, add it to the blocking results
+    #         blocking_results.append(result)
+    #     else:
+    #         # Not a blocking resolver
+    #         non_blocking_results.append(result)
 
-    # If any non-blocking resolver returns blocked, it's a fake block (someone pretending that a domain is blocked)
-    if any(
-            result.response == t.SingleProbeResponseType.BLOCKED
-            for result in non_blocking_results):
-        return t.FullProbeResponseType.FAKE_BLOCKED
+    # all not blocked
+    not_blocked = all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results)
+    if not_blocked:
+        return t.FullProbeResponseType.NOT_BLOCKED
 
-    # If any non-blocking resolver could find the domain, it exists
-    domain_exists = any(result.response != t.SingleProbeResponseType.NXDOMAIN for result in non_blocking_results)
-
-    # If any CNAME-blocking resolver detects the domain as blocked, it is at least partially blocked
-    partially_blocked = False
-    for result in blocking_results:
-        if result.resolver.blocking_type != t.BlockingType.CNAME:
-            # We only care about CNAME resolvers here
-            continue
-        if result.response == t.SingleProbeResponseType.BLOCKED:
-            partially_blocked = True
-            break
-
-    # If the domain does not exist, and it's partially blocked,
-    # we assume it's fully blocked since we can't analyze it further
-    if not domain_exists and partially_blocked:
-        return t.FullProbeResponseType.BLOCKED
-
-    # Check if an NXDOMAIN blocking resolver blocks it, meaning the domain might be CUII blocked, but we can't be sure
-    potentially_blocked = False
-    if not partially_blocked and domain_exists:
-        # If an NXDOMAIN resolver returns NXDOMAIN, the domain might be CUII blocked
-        for result in non_blocking_results:
-            if result.resolver.blocking_type != t.BlockingType.NXDOMAIN:
-                # CNAME blocking, not relevant here
-                continue
-            if result.response == t.SingleProbeResponseType.NXDOMAIN:
-                potentially_blocked = True
-                break
-    # A potential block can't be further analyzed, so we return it here
-    if potentially_blocked:
-        return t.FullProbeResponseType.POTENTIALLY_BLOCKED
-
-    # If at least one blocking resolver returns blocked and all others return blocked/timeouts, the domain is blocked
-    fully_blocked = False
-    if partially_blocked:  # the domain needs to be at least partially blocked to be fully blocked
-        fully_blocked = True  # assume True, changes below if not
-        for result in blocking_results:
-            if result.resolver.blocking_type == t.BlockingType.CNAME \
-                    and result.response not in (t.SingleProbeResponseType.BLOCKED, t.SingleProbeResponseType.TIMEOUT):
-                # A blocking CNAME resolver did not return blocked (or timeout), so the domain is not fully blocked
-                fully_blocked = False
-                break
-            if result.resolver.blocking_type == t.BlockingType.NXDOMAIN \
-                    and result.response not in (t.SingleProbeResponseType.NXDOMAIN, t.SingleProbeResponseType.TIMEOUT):
-                # A blocking NXDOMAIN resolver did not return NXDOMAIN (or timeout), so the domain is not fully blocked
-                fully_blocked = False
-                break
-
+    # all blocked
+    fully_blocked = all(result.response == t.SingleProbeResponseType.BLOCKED for result in results)
     if fully_blocked:
         return t.FullProbeResponseType.BLOCKED
+
+    partially_blocked = any(result.response == t.SingleProbeResponseType.BLOCKED for result in results)
     if partially_blocked:
         return t.FullProbeResponseType.PARTIALLY_BLOCKED
 
-    if not partially_blocked and not domain_exists:
-        return t.FullProbeResponseType.NXDOMAIN
+    all_errors = all(
+        result.response in (t.SingleProbeResponseType.ERROR, t.SingleProbeResponseType.TIMEOUT)
+        for result in results
+    )
+    if all_errors:
+        return t.FullProbeResponseType.ERROR
 
-    return t.FullProbeResponseType.NOT_BLOCKED
+
+def tes(domain):
+    resolver = t.DNSResolver(
+        "test",
+        t.Address.parse("94.135.170.54"),
+        True,
+        "test",
+        t.BlockingType.NO_SOA
+    )
+    print(asyncio.run(is_cuii_blocked_single(domain, resolver)).response)
+
+
+if __name__ == '__main__':
+    tes("michgibtesniaacht.com")
+    tes("kinox.to")
+    tes("google.com")

@@ -9,22 +9,19 @@ class SingleProbeResponseType(Enum):
     NOT_BLOCKED = 2
     ERROR = 3
     TIMEOUT = 4
-    NXDOMAIN = 5
 
 
 class FullProbeResponseType(Enum):
     NOT_BLOCKED = 1
     PARTIALLY_BLOCKED = 2
     BLOCKED = 3
-    FAKE_BLOCKED = 4
-    ERROR = 5
-    NXDOMAIN = 6
-    POTENTIALLY_BLOCKED = 7
+    ERROR = 4
+    NON_CUII_BLOCK = 5
 
 
 class BlockingType(Enum):
-    CNAME = 1
-    NXDOMAIN = 2
+    NO_SOA = 1
+    SERVFAIL = 2
 
 
 class DNSResolver:

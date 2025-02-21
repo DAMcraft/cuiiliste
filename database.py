@@ -63,11 +63,11 @@ __all__ = [
     "get_connection",
     "get_dns_resolvers",
     "get_blocked_domains",
-    "get_blocking_instances",
+#    "get_blocking_instances",
     "add_blocked_domain",
-    "add_blocking_instance",
-    "add_blocking_instances",
-    "remove_blocking_instance",
+    # "add_blocking_instance",
+    # "add_blocking_instances",
+    # "remove_blocking_instance",
     "remove_blocked_domain"
 ]
 
@@ -111,15 +111,15 @@ def get_dns_resolvers() -> list[t.DNSResolver]:
     resolvers = []
     with get_connection() as connection:
         cursor = connection.cursor()
-        cursor.execute("SELECT name, ip, is_blocking, isp, protocol, blocking_type FROM dns_resolvers")
+        cursor.execute("SELECT name, ip, is_blocking, isp, protocol, blocking_type FROM dns_resolvers WHERE is_blocking = 1")
         results = cursor.fetchall()
     for name, ip, is_blocking, isp, protocol, blocking_type_str in results:
         blocking_type = None
         if is_blocking:
-            if blocking_type_str == "CNAME":
-                blocking_type = t.BlockingType.CNAME
+            if blocking_type_str == "NO_SOA":
+                blocking_type = t.BlockingType.NO_SOA
             else:
-                blocking_type = t.BlockingType.NXDOMAIN
+                blocking_type = t.BlockingType.SERVFAIL
 
         resolvers.append(
             t.DNSResolver(
@@ -163,16 +163,16 @@ def get_blocked_domains() -> list[t.BlockedDomain]:
     return blocked_domains
 
 
-def get_blocking_instances() -> list[t.BlockingInstance]:
-    # table: blocking_instances
-    # columns: domain, blocker, blocked_on
-    blocking_instances = []
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute("SELECT domain, blocker, blocked_on FROM blocking_instances")
-        for domain, isp, blocked_on in cursor.fetchall():
-            blocking_instances.append(t.BlockingInstance(domain, isp, blocked_on))
-    return blocking_instances
+# def get_blocking_instances() -> list[t.BlockingInstance]:
+#     # table: blocking_instances
+#     # columns: domain, blocker, blocked_on
+#     blocking_instances = []
+#     with get_connection() as connection:
+#         cursor = connection.cursor()
+#         cursor.execute("SELECT domain, blocker, blocked_on FROM blocking_instances")
+#         for domain, isp, blocked_on in cursor.fetchall():
+#             blocking_instances.append(t.BlockingInstance(domain, isp, blocked_on))
+#     return blocking_instances
 
 
 def add_blocked_domain(blocked_domain: t.BlockedDomain) -> bool:
@@ -200,43 +200,43 @@ def add_blocked_domain(blocked_domain: t.BlockedDomain) -> bool:
         return cursor.rowcount > 0  # if the row was added, rowcount will be 1
 
 
-def add_blocking_instance(blocking_instance: t.BlockingInstance):
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute(
-            """
-                    INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on) 
-                    VALUES (%s, %s, %s)
-                    """,
-            (blocking_instance.domain, blocking_instance.isp, blocking_instance.blocked_on)
-        )
-        connection.commit()
-
-
-def add_blocking_instances(blocking_instances: list[t.BlockingInstance]):
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.executemany(
-            """
-                    INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on) 
-                    VALUES (%s, %s, %s)
-                    """,
-            [(blocking_instance.domain, blocking_instance.isp, blocking_instance.blocked_on) for blocking_instance in
-             blocking_instances]
-        )
-        connection.commit()
-
-
-def remove_blocking_instance(domain: str, isp: str):
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute(
-            """
-                    DELETE FROM blocking_instances WHERE domain = %s AND blocker = %s
-                    """,
-            (domain, isp)
-        )
-        connection.commit()
+# def add_blocking_instance(blocking_instance: t.BlockingInstance):
+#     with get_connection() as connection:
+#         cursor = connection.cursor()
+#         cursor.execute(
+#             """
+#                     INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on)
+#                     VALUES (%s, %s, %s)
+#                     """,
+#             (blocking_instance.domain, blocking_instance.isp, blocking_instance.blocked_on)
+#         )
+#         connection.commit()
+#
+#
+# def add_blocking_instances(blocking_instances: list[t.BlockingInstance]):
+#     with get_connection() as connection:
+#         cursor = connection.cursor()
+#         cursor.executemany(
+#             """
+#                     INSERT IGNORE INTO blocking_instances (domain, blocker, blocked_on)
+#                     VALUES (%s, %s, %s)
+#                     """,
+#             [(blocking_instance.domain, blocking_instance.isp, blocking_instance.blocked_on) for blocking_instance in
+#              blocking_instances]
+#         )
+#         connection.commit()
+#
+#
+# def remove_blocking_instance(domain: str, isp: str):
+#     with get_connection() as connection:
+#         cursor = connection.cursor()
+#         cursor.execute(
+#             """
+#                     DELETE FROM blocking_instances WHERE domain = %s AND blocker = %s
+#                     """,
+#             (domain, isp)
+#         )
+#         connection.commit()
 
 
 def remove_blocked_domain(domain: str):
@@ -256,3 +256,27 @@ def remove_blocked_domain(domain: str):
             (domain,)
         )
         connection.commit()
+
+
+def get_ignorelist() -> list[str]:
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT domain FROM domain_ignorelist")
+        return [domain for domain, in cursor.fetchall()]
+
+
+def add_potentially_blocked_domain(blocked_domain: t.BlockedDomain) -> bool:
+    # returns True if the domain was added, False if it already exists
+    with get_connection() as connection:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """            
+                    INSERT IGNORE INTO blocked_domains (domain, added_by, first_blocked_on, site_reference)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+            (blocked_domain.domain, blocked_domain.added_by, blocked_domain.first_blocked_on,
+             blocked_domain.site.name if blocked_domain.site else None)
+        )
+        connection.commit()
+        return cursor.rowcount > 0  # if the row was added, rowcount will be 1
