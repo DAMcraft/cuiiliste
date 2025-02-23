@@ -13,7 +13,7 @@ import notifications
 
 def test_domain(domain: str, resolvers: list[t.DNSResolver], domain_ignorelist: list[str]) \
         -> dict[str, str | list[dict[str, str | int]]]:
-    domain = re.sub(r"^(http(s)?://)?", "", domain.strip().lower())  # normalize domain
+    domain = re.sub(r"^(http(s)?://)?", "", domain.strip(" \t\n\r\v\f.").lower())  # normalize domain
     if len(domain) == 0 or not re.match(r"^[a-z0-9.-]+$", domain) or len(domain) > 255:
         return {"error": "Invalid domain"}
 
