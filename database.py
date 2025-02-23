@@ -278,4 +278,5 @@ def add_potentially_blocked_domain(blocked_domain: t.BlockedDomain) -> bool:
             (blocked_domain.domain,)
         )
         connection.commit()
+        print(cursor.rowcount)
         return cursor.rowcount > 0  # if the row was added, rowcount will be 1
