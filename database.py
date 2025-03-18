@@ -118,8 +118,10 @@ def get_dns_resolvers() -> list[t.DNSResolver]:
         if is_blocking:
             if blocking_type_str == "NO_SOA":
                 blocking_type = t.BlockingType.NO_SOA
-            else:
+            elif blocking_type_str == "SERVFAIL":
                 blocking_type = t.BlockingType.SERVFAIL
+            elif blocking_type_str == "CNAME":
+                blocking_type = t.BlockingType.CNAME
 
         resolvers.append(
             t.DNSResolver(
