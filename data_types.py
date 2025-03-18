@@ -22,6 +22,7 @@ class FullProbeResponseType(Enum):
 class BlockingType(Enum):
     NO_SOA = 1
     SERVFAIL = 2
+    CNAME = 3
 
 
 class DNSResolver:

@@ -34,6 +34,12 @@ async def is_cuii_blocked_single(domain: str, resolver: t.DNSResolver) -> t.Sing
             if res.r == 3 and len(res.ns) == 0:
                 resp = t.SingleProbeResponseType.BLOCKED
 
+        elif resolver.blocking_type == t.BlockingType.CNAME:
+            # check if the response contains a CNAME record and if it points to "notice.cuii.info"
+            for record in res.an:
+                if record.qtype == types.CNAME and record.data and record.data.data == "notice.cuii.info":
+                    resp = t.SingleProbeResponseType.BLOCKED
+
         return t.SingleProbeResponse(resp, duration, domain, resolver)
 
     except (CancelledError, asyncio.TimeoutError):
@@ -95,10 +101,10 @@ def analyze_results(results: list[t.SingleProbeResponse]):
 def tes(domain):
     resolver = t.DNSResolver(
         "test",
-        t.Address.parse("94.135.170.54"),
+        t.Address.parse("62.55.250.209"),
         True,
         "test",
-        t.BlockingType.NO_SOA
+        t.BlockingType.CNAME
     )
     print(asyncio.run(is_cuii_blocked_single(domain, resolver)).response)
 
