@@ -75,27 +75,30 @@ def analyze_results(results: list[t.SingleProbeResponse]):
     #     else:
     #         # Not a blocking resolver
     #         non_blocking_results.append(result)
-
-    # all not blocked
-    not_blocked = all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in results)
-    if not_blocked:
-        return t.FullProbeResponseType.NOT_BLOCKED
-
-    # all blocked
-    fully_blocked = all(result.response == t.SingleProbeResponseType.BLOCKED for result in results)
-    if fully_blocked:
-        return t.FullProbeResponseType.BLOCKED
-
-    partially_blocked = any(result.response == t.SingleProbeResponseType.BLOCKED for result in results)
-    if partially_blocked:
-        return t.FullProbeResponseType.PARTIALLY_BLOCKED
-
     all_errors = all(
         result.response in (t.SingleProbeResponseType.ERROR, t.SingleProbeResponseType.TIMEOUT)
         for result in results
     )
     if all_errors:
         return t.FullProbeResponseType.ERROR
+
+    no_errors = [result for result in results if result.response
+                 not in (t.SingleProbeResponseType.ERROR, t.SingleProbeResponseType.TIMEOUT)]
+
+
+    # all not blocked
+    not_blocked = all(result.response == t.SingleProbeResponseType.NOT_BLOCKED for result in no_errors)
+    if not_blocked:
+        return t.FullProbeResponseType.NOT_BLOCKED
+
+    # all blocked
+    fully_blocked = all(result.response == t.SingleProbeResponseType.BLOCKED for result in no_errors)
+    if fully_blocked:
+        return t.FullProbeResponseType.BLOCKED
+
+    partially_blocked = any(result.response == t.SingleProbeResponseType.BLOCKED for result in no_errors)
+    if partially_blocked:
+        return t.FullProbeResponseType.PARTIALLY_BLOCKED
 
 
 def tes(domain):
